@@ -1,0 +1,23 @@
+name: ci
+
+on:
+  push:
+    tags:
+      - "*"
+    branches:
+      - main
+      - development
+  pull_request:
+
+jobs:
+  code_check:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5.1.0
+        with:
+          python-version: 3.11
+      - name: install_tools
+        run: pip install -r ./code_check_req.txt
+      - name: run_code_check
+        run: bash code_check.sh
