@@ -1,4 +1,5 @@
 ## CondaDependencyCleaner
+![CI Status](https://github.com/oliverweissl/CondaDependencyCleaner/actions/workflows/main.yml/badge.svg)
 
 A tool that helps make your conda environment files more lightweight by removing unnecessary transitive dependencies, leaving only what’s essential. 
 It's a work-in-progress project, and we welcome feedback! 

@@ -18,6 +18,6 @@ jobs:
         with:
           python-version: 3.11
       - name: install_tools
-        run: pip install -r .code_check_req.txt
+        run: pip install -r ./code_check_req.txt
       - name: run_code_check
         run: bash code_check.sh
