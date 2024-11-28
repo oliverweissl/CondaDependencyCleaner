@@ -10,4 +10,9 @@ It is required to have conda installed. Once you are in a conda environment inst
 Then simply `pip install conda_dependency_cleaner`. 
 
 Once installed you can clean your `.yaml` or `.yml` files by running the command `clean-yaml`. 
-An example usage is as follows: `clean-yaml env.yml -nf env_cleaned.yml`. For help use `clean-yaml --help`.
+An example usage is as follows: 
+```
+clean-yaml env.yml -nf env_cleaned.yml
+```
+
+For help and more info use `clean-yaml --help`.
