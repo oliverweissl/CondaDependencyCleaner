@@ -1,2 +1,12 @@
-# CondaDependencyCleaner
-A tool that allows for easy cleaning of conda .yml environments. This tool automatically removes transative dependencies, cleaning up massive environment yamls to only inlcude neccessary packages.
+## CondaDependencyCleaner
+
+A tool that helps make your conda environment files more lightweight by removing unnecessary transitive dependencies, leaving only what’s essential. 
+It's a work-in-progress project, and we welcome feedback! 
+Have ideas for new features or improvements? Open an issue in the repository to share your suggestions.
+
+### How to use:
+It is required to have conda installed. Once you are in a conda environment install conda `conda install conda` this is necessary for the package to work properly in the first place.
+Then simply `pip install conda_dependency_cleaner`. 
+
+Once installed you can clean your `.yaml` or `.yml` files by running the command `clean-yaml`. 
+An example usage is as follows: `clean-yaml env.yml -nf env_cleaned.yml`. For help use `clean-yaml --help`.

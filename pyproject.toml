@@ -1,0 +1,29 @@
+[build-system]
+requires = ["poetry-core>=1.6.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "conda-dependency-cleaner"
+version = "0.0.1"
+description = "Clean your conda yaml file."
+readme = "README.md"
+license = "MIT"
+authors = ["Oliver Weissl <weissl@fortiss.org>", ]
+repository = "https://github.com/oliverweissl/CondaDependencyCleaner"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Typing :: Typed",
+    "Topic :: Utilities",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+]
+
+[tool.poetry.scripts]
+clean-yaml = "conda_dependency_cleaner.clean:main"
+
+[tool.poetry.dependencies]
+matplotlib = "^3.0.0"
+networkx = "^3.2.1"
+conda = "^24.0.0"
