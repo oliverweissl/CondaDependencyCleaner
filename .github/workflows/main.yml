@@ -21,3 +21,17 @@ jobs:
         run: pip install -r ./code_check_req.txt
       - name: run_code_check
         run: bash code_check.sh
+
+  unit_tests:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/setup-python@v5.1.0
+        with:
+          python-version: 3.11
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: 3.11
+      - name: install test requirements
+        run: pip install -r ./tests/requirements.txt
+      - name: run pytest
+        run: pytest -v
