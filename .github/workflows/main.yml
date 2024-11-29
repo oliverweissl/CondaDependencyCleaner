@@ -33,10 +33,11 @@ jobs:
         with:
           python-version: 3.11
           activate-environment: CondaDependencyCleaner
-          environment-file: ./tests/test_env.yml
       - shell: bash -el {0}
         run: conda install conda
       - name: install test requirements
         run: pip install -r ./tests/requirements.txt
+      - name: install cdc
+        run: pip install .
       - name: run pytest
         run: pytest -v
