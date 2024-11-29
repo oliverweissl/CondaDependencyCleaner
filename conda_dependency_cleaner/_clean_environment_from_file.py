@@ -1,37 +1,9 @@
-from dataclasses import dataclass, field
-
-from conda import exports as ce
+from conda.exports import linked, linked_data
 from conda.env.env import Environment, from_file
 from conda.models.dist import Dist
 
-from ._get_dependeny_graph import get_dependency_graph
-from ._to_yaml_patch import to_yaml_patch
+from .utility import get_dependency_graph, to_yaml_patch, Dependency
 
-
-@dataclass
-class _Dependency:
-    full_name: str
-    exclude_version: bool
-    exclude_build: bool
-
-    name: str = field(init=False)
-    version: str = field(init=False)
-    build: str = field(init=False)
-
-    def __post_init__(self) -> None:
-        """After init process the full name."""
-        self.name, rest = self.full_name.split("==")
-        self.version, self.build = rest.split("=")
-
-    def __repr__(self) -> str:
-        """
-        Define the representation of the Dependency.
-
-        :return: Return the name.
-        """
-        v = "" if self.exclude_version else f"=={self.version}"
-        b = "" if (self.exclude_build or self.exclude_version) else f"={self.build}"
-        return f"{self.name}{v}{b}"
 
 
 def clean_environment_from_file(
@@ -49,21 +21,38 @@ def clean_environment_from_file(
     :param exclude_build: Whether to remove the builds of the dependencies.
     """
     env: Environment = from_file(environment_file_path)
-    package_cache: list[Dist] = ce.linked(env.prefix)
-
+    package_cache: list[Dist] = linked(env.prefix)
     # Generate directed graph from distributions.
     graph = get_dependency_graph(packages=package_cache, env_path=env.prefix)
-    # Extract all packages without ingoing dependencies.
+    # Extract all packages that are roots (i.e have no packages depend on them).
     roots = [k for k, v in graph.in_degree if v < 1]
-    filtered_dependencies = [
-        str(_Dependency(d, exclude_version, exclude_build))
-        for d in env.dependencies["conda"]
-        if any((n == d.split("==")[0] for n in roots))
-    ]
+    # Get filtered dependencies for conda and pip
+    conda_dependencies = _get_filtered_dependencies(env.dependencies.get("conda"), roots, exclude_version, exclude_build)
+
+    # For now we can only filter conda packages
+    # TODO: maybe incorporate filtering for pip
+    pip_deps: list[str] | None = env.dependencies.get("pip")
+    new_dependencies = conda_dependencies + ([{"pip": pip_deps}] if pip_deps else [])
+
 
     env_dict = env.to_dict()
-    env_dict["dependencies"] = filtered_dependencies
+    env_dict["dependencies"] = new_dependencies
 
     path = new_file_name or env.filename
     with open(path, "wb") as stream:
         to_yaml_patch(stream=stream, obj=env_dict)
+
+def _get_filtered_dependencies(dependencies: list[str] | None, roots: list[str], ev: bool, eb: bool) -> list[str]:
+    """
+    Get a list of filtered dependencies.
+
+    :param dependencies: The dependencies to filter.
+    :param roots: The root dependencies.
+    :param ev: Exclude version from dependency representation.
+    :param eb: Exclude build from dependency representation.
+    :return: The filtered list.
+    """
+    if dependencies is None:
+        return []
+    dependencies = [Dependency(d, ev, eb) for d in dependencies]
+    return [repr(d) for d in dependencies if any((n == d.name for n in roots))]
