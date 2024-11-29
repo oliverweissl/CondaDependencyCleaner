@@ -32,6 +32,6 @@ jobs:
         with:
           python-version: 3.11
       - name: install test requirements
-        run: pip install -r tests/requirements.txt
+        run: pip install -r ./tests/requirements.txt
       - name: run pytest
         run: pytest -v
