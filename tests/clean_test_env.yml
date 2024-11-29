@@ -1,0 +1,15 @@
+name: CondaDependencyCleanerTest
+channels:
+  - defaults
+  - https://repo.anaconda.com/pkgs/main
+  - https://repo.anaconda.com/pkgs/r
+dependencies:
+  - brotli==1.0.9=h5eee18b_8
+  - matplotlib==3.9.2=py312h06a4308_1
+  - unicodedata2==15.1.0=py312h5eee18b_0
+  - pip:
+      - cycler==0.12.1
+      - fonttools==4.55.0
+      - kiwisolver==1.4.7
+      - networkx==3.4.2
+      - numpy==2.1.3
