@@ -13,27 +13,44 @@ def test_clean(mocker: Mock) -> None:
     :param mocker: The mock object.
     """
     with tempfile.TemporaryDirectory() as temp_dir:
-        test_env_file = f"{os.path.dirname(os.path.realpath(__file__))}/test_env.yml"
-        env: Environment = from_file(test_env_file)
+        initial_env_file = f"{os.path.dirname(os.path.realpath(__file__))}/test_env.yml"
+        clean_env_file = f"{os.path.dirname(os.path.realpath(__file__))}/clean_test_env.yml"
+        clean_env: Environment = from_file(clean_env_file)
+
         # Create the test environment
-        subprocess.run(["conda", "env", "create", "-f", test_env_file])
-
         base_env_file = f"{temp_dir}/test.yml"
-        subprocess.run(["conda", "env", "export", "-n", env.name ,"-f", base_env_file])
-        base_env: Environment = from_file(base_env_file)
-        subprocess.run(["conda", "env", "remove", "-p", base_env.prefix, "-y"])
-
+        base_env = _conda_operations(initial_env_file, base_env_file)
 
         # Clean the environment
-        clean_env_file = f"{temp_dir}/test_clean.yml"
-        subprocess.run(["clean-yaml", base_env_file, "-nf", clean_env_file])
-        cleaned_env: Environment = from_file(clean_env_file)
-        cleaned_env.name += "Clean"  # Change name
+        cleaned_env_file = f"{temp_dir}/test_clean.yml"
+        subprocess.run(["clean-yaml", base_env_file, "-nf", cleaned_env_file])
+        _remove_conda_env(base_env)
 
-        with open(clean_env_file, "wb") as stream:
-            to_yaml_patch(stream, cleaned_env.to_dict())
+        cleaned_env = _conda_operations(cleaned_env_file, cleaned_env_file)
+        _remove_conda_env(cleaned_env)
 
-        # Create and remove cleaned environment
-        subprocess.run(["conda", "env", "create", "-f", clean_env_file])
-        subprocess.run(["conda", "env", "remove", "-p", cleaned_env.prefix, "-y"])
+    assert cleaned_env.dependencies == clean_env.dependencies, "Error: Dependencies are different."
 
+
+def _conda_operations(initial_env: str, new_env: str) -> Environment:
+    """
+    Create a conda environment based on a environment file, then export it to a new file.
+
+
+    :param initial_env: The environment file.
+    :param new_env: The new environment file.
+    :return: The environment loaded as a python object.
+    """
+    env = from_file(initial_env)
+    subprocess.run(["conda", "env", "create", "-f", initial_env])
+    subprocess.run(["conda", "env", "export", "-n", env.name, "-f", new_env])
+    return env
+
+
+def _remove_conda_env(env: Environment) -> None:
+    """
+    Remove a conda environment from the system.
+
+    :param env: The environment to remove.
+    """
+    subprocess.run(["conda", "env", "remove", "-n", env.name, "-y"])

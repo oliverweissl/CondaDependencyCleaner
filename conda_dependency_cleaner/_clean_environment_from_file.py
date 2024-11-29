@@ -1,9 +1,8 @@
-from conda.exports import linked, linked_data
 from conda.env.env import Environment, from_file
+from conda.exports import linked
 from conda.models.dist import Dist
 
-from .utility import get_dependency_graph, to_yaml_patch, Dependency
-
+from .utility import Dependency, get_dependency_graph, to_yaml_patch
 
 
 def clean_environment_from_file(
@@ -27,22 +26,27 @@ def clean_environment_from_file(
     # Extract all packages that are roots (i.e have no packages depend on them).
     roots = [k for k, v in graph.in_degree if v < 1]
     # Get filtered dependencies for conda and pip
-    conda_dependencies = _get_filtered_dependencies(env.dependencies.get("conda"), roots, exclude_version, exclude_build)
+    conda_dependencies = _get_filtered_dependencies(
+        env.dependencies.get("conda"), roots, exclude_version, exclude_build
+    )
 
     # For now we can only filter conda packages
     # TODO: maybe incorporate filtering for pip
     pip_deps: list[str] | None = env.dependencies.get("pip")
     new_dependencies = conda_dependencies + ([{"pip": pip_deps}] if pip_deps else [])
 
-
     env_dict = env.to_dict()
     env_dict["dependencies"] = new_dependencies
 
     path = new_file_name or env.filename
+    print(path)
     with open(path, "wb") as stream:
         to_yaml_patch(stream=stream, obj=env_dict)
 
-def _get_filtered_dependencies(dependencies: list[str] | None, roots: list[str], ev: bool, eb: bool) -> list[str]:
+
+def _get_filtered_dependencies(
+    dependencies: list[str] | None, roots: list[str], ev: bool, eb: bool
+) -> list[str]:
     """
     Get a list of filtered dependencies.
 

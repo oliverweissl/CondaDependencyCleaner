@@ -1,8 +1,10 @@
 from dataclasses import dataclass, field
 
+
 @dataclass
 class Dependency:
     """A class representing a dependency of the conda environment."""
+
     full_name: str
     exclude_version: bool
     exclude_build: bool
