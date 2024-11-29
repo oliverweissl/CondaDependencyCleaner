@@ -34,7 +34,10 @@ jobs:
           python-version: 3.11
           activate-environment: CondaDependencyCleaner
       - shell: bash -el {0}
-        run: conda install conda
+        run: |
+          conda init
+          conda activate CondaDependencyCleaner
+          conda install conda
       - name: install test requirements
         run: pip install -r ./tests/requirements.txt
       - name: install cdc
