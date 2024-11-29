@@ -32,6 +32,8 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v3
         with:
           python-version: 3.11
+          activate-environment: CondaDependencyCleaner
+          environment-file: ./tests/test_env.yml
       - shell: bash -el {0}
         run: conda install conda
       - name: install test requirements
