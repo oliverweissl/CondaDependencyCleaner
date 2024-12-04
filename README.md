@@ -1,3 +1,4 @@
+<img align="right" width="175" height="175" src="./CDC.png"></img>
 ## CondaDependencyCleaner
 ![CI Status](https://github.com/oliverweissl/CondaDependencyCleaner/actions/workflows/main.yml/badge.svg)
 

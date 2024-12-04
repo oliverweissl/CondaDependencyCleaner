@@ -21,12 +21,10 @@ def main() -> None:
     parser.add_argument(
         "--exclude-version",
         help="Allows to exclude version of the dependency.",
-        action='store_true'
+        action="store_true",
     )
     parser.add_argument(
-        "--exclude-build",
-        help="Allows to exclude build of the dependency.",
-        action='store_true'
+        "--exclude-build", help="Allows to exclude build of the dependency.", action="store_true"
     )
     parser.add_argument(
         "-h",
