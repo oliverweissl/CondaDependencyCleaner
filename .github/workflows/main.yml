@@ -24,23 +24,26 @@ jobs:
 
   unit_tests:
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5.1.0
         with:
-          python-version: 3.11
+          python-version: ${{ matrix.python-version }}
       - uses: conda-incubator/setup-miniconda@v3
         with:
-          python-version: 3.11
+          python-version: ${{ matrix.python-version }}
           activate-environment: CondaDependencyCleaner
-      - shell: bash -el {0}
+      - name: install CDC
+        shell: bash -el {0}
         run: |
           conda init
           conda activate CondaDependencyCleaner
           conda install conda
-      - name: install test requirements
-        run: pip install -r ./tests/requirements.txt
-      - name: install cdc
-        run: pip install .
+          pip install .
+          pip install -r ./tests/requirements.txt
       - name: run pytest
+        shell: bash -el {0}
         run: pytest -v

@@ -1,50 +1,9 @@
-import subprocess
-from unittest.mock import Mock
-import tempfile
 import os
+import subprocess
+import tempfile
+
+import pytest
 from conda.env.env import Environment, from_file
-from conda_dependency_cleaner.utility import to_yaml_patch
-
-
-def test_clean(mocker: Mock) -> None:
-    """
-    Test the environment cleaner script.
-
-    :param mocker: The mock object.
-    """
-    with tempfile.TemporaryDirectory() as temp_dir:
-        initial_env_file = f"{os.path.dirname(os.path.realpath(__file__))}/test_env.yml"
-        clean_env_file = f"{os.path.dirname(os.path.realpath(__file__))}/clean_test_env.yml"
-        clean_env: Environment = from_file(clean_env_file)
-
-        # Create the test environment
-        base_env_file = f"{temp_dir}/test.yml"
-        base_env = _conda_operations(initial_env_file, base_env_file)
-
-        # Clean the environment
-        cleaned_env_file = f"{temp_dir}/test_clean.yml"
-        subprocess.run(["clean-yaml", base_env_file, "-nf", cleaned_env_file])
-        _remove_conda_env(base_env)
-
-        cleaned_env = _conda_operations(cleaned_env_file, cleaned_env_file)
-        _remove_conda_env(cleaned_env)
-
-    assert cleaned_env.dependencies == clean_env.dependencies, "Error: Dependencies are different."
-
-
-def _conda_operations(initial_env: str, new_env: str) -> Environment:
-    """
-    Create a conda environment based on a environment file, then export it to a new file.
-
-
-    :param initial_env: The environment file.
-    :param new_env: The new environment file.
-    :return: The environment loaded as a python object.
-    """
-    env = from_file(initial_env)
-    subprocess.run(["conda", "env", "create", "-f", initial_env])
-    subprocess.run(["conda", "env", "export", "-n", env.name, "-f", new_env])
-    return env
 
 
 def _remove_conda_env(env: Environment) -> None:
@@ -54,3 +13,76 @@ def _remove_conda_env(env: Environment) -> None:
     :param env: The environment to remove.
     """
     subprocess.run(["conda", "env", "remove", "-n", env.name, "-y"])
+
+
+@pytest.fixture(scope="session")
+def base_env_file() -> str:
+    """
+    Create and export the base environment file once for all tests.
+
+    :yields: The base environment file path.
+    """
+    test_env_file = os.path.join(os.path.dirname(__file__), "files", "test_env.yml")
+    test_env = from_file(test_env_file)
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            subprocess.run(["conda", "env", "create", "--file", test_env_file])
+            base_env_file = f"{tmpdir}/base_env.yml"
+            subprocess.run(["conda", "env", "export", "-n", test_env.name, "--file", base_env_file])
+            yield base_env_file
+    finally:
+        _remove_conda_env(test_env)
+
+
+@pytest.fixture
+def temp_dir() -> str:
+    """
+    Create a unique temporary directory for each test.
+
+    :yields: The temporary directory path.
+    """
+    with tempfile.TemporaryDirectory() as temp_dir:
+        yield temp_dir
+
+
+@pytest.mark.parametrize(
+    "args, expected_env_file",
+    [
+        ([], "clean_test_env.yml"),
+        (["--exclude-builds"], "clean_test_env_no_builds.yml"),
+        (["--exclude-versions"], "clean_test_env_no_versions.yml"),
+    ],
+)
+def test_clean_yaml(
+    base_env_file: str, temp_dir: str, args: list[str], expected_env_file: str
+) -> None:
+    """
+    Test clean-yaml script with different arguments.
+
+    :param base_env_file: The base environment file path.
+    :param temp_dir: The temporary directory path.
+    :param args: The arguments to pass to the clean_yaml script.
+    :param expected_env_file: The expected environment file path.
+    """
+    cleaned_env_file = os.path.join(temp_dir, "cleaned_env.yml")
+
+    # Run the clean-yaml script
+    result = subprocess.run(
+        ["clean-yaml", base_env_file, "-nf", cleaned_env_file] + args,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, f"clean-yaml failed with exit code {result.returncode}!"
+    assert os.path.exists(cleaned_env_file), f"{cleaned_env_file} was not created!"
+
+    # Load the expected environment
+    cleaned_env = from_file(cleaned_env_file)
+    expected_clean_env_path = os.path.join(os.path.dirname(__file__), "files", expected_env_file)
+    expected_clean_env = from_file(expected_clean_env_path)
+
+    # Compare dependencies
+    assert (
+        cleaned_env.dependencies == expected_clean_env.dependencies
+    ), f"Dependencies differ for {args}"

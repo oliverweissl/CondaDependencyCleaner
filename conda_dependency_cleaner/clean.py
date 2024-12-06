@@ -19,12 +19,14 @@ def main() -> None:
         required=False,
     )
     parser.add_argument(
-        "--exclude-version",
-        help="Allows to exclude version of the dependency.",
+        "--exclude-versions",
+        help="Allows to exclude versions of the dependencies.",
         action="store_true",
     )
     parser.add_argument(
-        "--exclude-build", help="Allows to exclude build of the dependency.", action="store_true"
+        "--exclude-builds",
+        help="Allows to exclude builds of the dependencies.",
+        action="store_true",
     )
     parser.add_argument(
         "-h",
@@ -38,8 +40,8 @@ def main() -> None:
     clean_environment_from_file(
         args.filename,
         args.new_filename,
-        exclude_version=args.exclude_version,
-        exclude_build=args.exclude_build,
+        exclude_versions=args.exclude_versions,
+        exclude_builds=args.exclude_builds,
     )
 
 
