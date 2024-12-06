@@ -32,9 +32,6 @@ jobs:
       - uses: actions/setup-python@v5.1.0
         with:
           python-version: ${{ matrix.python-version }}
-      - name: install pytest
-        shell: bash -el {0}
-        run: pip install -r ./tests/requirements.txt
       - uses: conda-incubator/setup-miniconda@v3
         with:
           python-version: ${{ matrix.python-version }}
@@ -46,6 +43,7 @@ jobs:
           conda activate CondaDependencyCleaner
           conda install conda
           pip install .
+          pip install -r ./tests/requirements.txt
       - name: run pytest
         shell: bash -el {0}
         run: pytest -v
