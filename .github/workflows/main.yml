@@ -33,16 +33,19 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: install pytest
+        shell: bash -el {0}
         run: pip install -r ./tests/requirements.txt
       - uses: conda-incubator/setup-miniconda@v3
         with:
           python-version: ${{ matrix.python-version }}
           activate-environment: CondaDependencyCleaner
-      - shell: bash -el {0}
+      - name: install CDC
+        shell: bash -el {0}
         run: |
           conda init
           conda activate CondaDependencyCleaner
           conda install conda
           pip install .
       - name: run pytest
+        shell: bash -el {0}
         run: pytest -v
