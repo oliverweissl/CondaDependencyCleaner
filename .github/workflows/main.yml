@@ -38,9 +38,7 @@ jobs:
           conda init
           conda activate CondaDependencyCleaner
           conda install conda
-      - name: install test requirements
-        run: pip install -r ./tests/requirements.txt
-      - name: install cdc
-        run: pip install .
+          pip install -r ./tests/requirements.txt
+          pip install .
       - name: run pytest
         run: pytest -v
