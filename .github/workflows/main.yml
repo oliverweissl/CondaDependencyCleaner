@@ -64,7 +64,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: dist
-          path: ./dist/**/*.whl
+          path: ./dist/*.whl
 
   publish:
     runs-on: ubuntu-22.04
