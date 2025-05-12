@@ -11,7 +11,7 @@ on:
 
 jobs:
   code_check:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -23,7 +23,7 @@ jobs:
         run: bash code_check.sh
 
   unit_tests:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         python-version: ["3.10", "3.11"]
@@ -49,7 +49,7 @@ jobs:
         run: pytest -v
 
   build_wheels:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [unit_tests]
     strategy:
       matrix:
