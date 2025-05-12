@@ -26,4 +26,4 @@ clean-yaml = "conda_dependency_cleaner.clean:main"
 [tool.poetry.dependencies]
 matplotlib = "^3.0.0"
 networkx = "^3.2.1"
-conda = "^24.0.0"
+conda = ">24.0.0"

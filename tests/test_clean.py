@@ -1,6 +1,7 @@
 import os
 import subprocess
 import tempfile
+from typing import Generator, Any
 
 import pytest
 from conda.env.env import Environment, from_file
@@ -16,7 +17,7 @@ def _remove_conda_env(env: Environment) -> None:
 
 
 @pytest.fixture(scope="session")
-def base_env_file() -> str:
+def base_env_file() -> Generator[str, Any, None]:
     """
     Create and export the base environment file once for all tests.
 
@@ -35,7 +36,7 @@ def base_env_file() -> str:
 
 
 @pytest.fixture
-def temp_dir() -> str:
+def temp_dir() -> Generator[str, Any, None]:
     """
     Create a unique temporary directory for each test.
 
