@@ -1,6 +1,7 @@
 <img align="right" width="175" height="175" src="./CDC.png"></img>
 ## CondaDependencyCleaner
 ![CI Status](https://github.com/oliverweissl/CondaDependencyCleaner/actions/workflows/main.yml/badge.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A tool that helps make your conda environment files more lightweight by removing unnecessary transitive dependencies, leaving only what’s essential. 
 It's a work-in-progress project, and we welcome feedback! 
