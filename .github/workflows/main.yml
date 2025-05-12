@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5.1.0
+      - uses: actions/setup-python@v5
         with:
           python-version: 3.11
       - name: install_tools
@@ -29,7 +29,7 @@ jobs:
         python-version: ["3.10", "3.11"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5.1.0
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - uses: conda-incubator/setup-miniconda@v3
@@ -56,15 +56,14 @@ jobs:
         python-version: [ "3.10", "3.11" ]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5.1.0
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Build wheels
-        run:  pip install --upgrade build && python -m build --wheel
-      - uses: actions/upload-artifact@v3
+        run:  pip wheel --no-deps . -w ./dist
+      - uses: actions/upload-artifact@v4
         with:
-          name: dist
-          path: ./dist/*.whl
+          path: ./dist/**/*.whl
 
   publish:
     runs-on: ubuntu-22.04
@@ -76,13 +75,11 @@ jobs:
       id-token: write
     steps:
       - name: Download dist artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: dist
+          pattern: conda_dependency_cleaner-*
           path: dist
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/conda_dependency_cleaner-*.whl
-
-
