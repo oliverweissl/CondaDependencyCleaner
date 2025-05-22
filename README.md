@@ -2,6 +2,7 @@
 ## CondaDependencyCleaner
 ![CI Status](https://github.com/oliverweissl/CondaDependencyCleaner/actions/workflows/main.yml/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![conda-dependency-cleaner Downloads Last Month](https://assets.piptrends.com/get-last-month-downloads-badge/conda-dependency-cleaner.svg 'conda-dependency-cleaner Downloads Last Month by pip Trends')](https://piptrends.com/package/conda-dependency-cleaner)
 
 A tool that helps make your conda environment files more lightweight by removing unnecessary transitive dependencies, leaving only what’s essential. 
 It's a work-in-progress project, and we welcome feedback! 
