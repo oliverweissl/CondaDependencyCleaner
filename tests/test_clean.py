@@ -1,7 +1,7 @@
 import os
 import subprocess
 import tempfile
-from typing import Generator, Any
+from typing import Any, Generator
 
 import pytest
 from conda.env.env import Environment, from_file

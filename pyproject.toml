@@ -4,8 +4,8 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "conda-dependency-cleaner"
-version = "0.0.2"
-description = "Clean your conda yaml file."
+version = "0.0.3"
+description = "Clean your conda yaml file and convert pip dependencies to conda."
 readme = "README.md"
 license = "MIT"
 authors = ["Oliver Weissl <weissl@fortiss.org>", ]
@@ -21,7 +21,7 @@ classifiers = [
 ]
 
 [tool.poetry.scripts]
-clean-yaml = "conda_dependency_cleaner.clean:main"
+cdc = "conda_dependency_cleaner.cdc:main"
 
 [tool.poetry.dependencies]
 matplotlib = "^3.0.0"
