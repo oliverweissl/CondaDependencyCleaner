@@ -1,7 +1,7 @@
 import os
 import subprocess
 import tempfile
-from typing import Generator, Any
+from typing import Any, Generator
 
 import pytest
 from conda.env.env import Environment, from_file
@@ -69,13 +69,13 @@ def test_clean_yaml(
 
     # Run the clean-yaml script
     result = subprocess.run(
-        ["clean-yaml", base_env_file, "-nf", cleaned_env_file] + args,
+        ["cdc", "clean", base_env_file, "-nf", cleaned_env_file] + args,
         check=False,
         capture_output=True,
         text=True,
     )
 
-    assert result.returncode == 0, f"clean-yaml failed with exit code {result.returncode}!"
+    assert result.returncode == 0, f"cdc clean failed with exit code {result.returncode}!"
     assert os.path.exists(cleaned_env_file), f"{cleaned_env_file} was not created!"
 
     # Load the expected environment
