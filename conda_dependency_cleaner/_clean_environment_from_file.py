@@ -1,7 +1,11 @@
 import logging
+import os
+from pathlib import Path
 from typing import Any
 
+from conda.base.context import context
 from conda.env.env import Environment, from_file
+from conda.exceptions import EnvironmentNameNotFound
 from conda.exports import linked
 from conda.models.dist import Dist
 
@@ -23,12 +27,32 @@ def clean_environment_from_file(
     :param exclude_versions: Whether to remove the versions of the dependencies (Note if the version is removed the build will be removed aswell).
     :param exclude_builds: Whether to remove the builds of the dependencies.
     :param _: Other unused kwargs.
+    :raises ValueError: If no name or prefix is provided in the environment.
+    :raises EnvironmentNameNotFound: If a conda environment is not found by name.
     """
     logging.info("Cleaning conda environment.")
     env: Environment = from_file(filename)
-    package_cache: list[Dist] = linked(env.prefix)
+
+    prefix = env.prefix
+    if env.prefix is None:  # If no prefix is defined do manual search of environment.
+        if env.name is None:
+            raise ValueError("Environment must have a 'name' or 'prefix' defined.")
+
+        conda_exe = os.environ.get("CONDA_EXE")
+        base_prefix = (
+            Path(conda_exe).parent.parent if conda_exe is not None else Path(context.root_prefix)
+        )
+        candidate = base_prefix / "envs" / env.name
+        if candidate.exists():
+            prefix = str(candidate)
+        else:
+            raise EnvironmentNameNotFound(
+                f"Conda env '{env.name}' not found. Activate it or add 'prefix:' to the yaml."
+            )
+
+    package_cache: list[Dist] = linked(prefix)
     # Generate directed graph from distributions.
-    graph = get_dependency_graph(packages=package_cache, env_path=env.prefix)
+    graph = get_dependency_graph(packages=package_cache, env_path=prefix)
     # Extract all packages that are roots (i.e. have no packages depend on them).
     roots = [k for k, v in graph.in_degree if v < 1]
     # Get filtered dependencies for conda and pip
@@ -40,7 +64,9 @@ def clean_environment_from_file(
     # TODO: maybe incorporate filtering for pip
     pip_deps: list[str] | None = env.dependencies.get("pip")
     if pip_deps is not None:
-        pip_deps = [d.split("=")[0] for d in pip_deps] if exclude_versions else pip_deps
+        pip_deps = (
+            [d.split("=")[0] for d in pip_deps] if exclude_versions else [str(d) for d in pip_deps]
+        )
         conda_dependencies += [{"pip": pip_deps}]
 
     env_dict = env.to_dict()

@@ -6,6 +6,11 @@ Thank you for wanting to contribute! To ensure a smooth development process, ple
  - Always base your PR on the development branch.
  - Avoid committing directly to main or other protected branches.
 
+### Formatting and Testing
+
+- Before pushing run `bash code_check.sh` and fix errors that are shown.
+- Also run the unit-tests locally using `pytest -v` to validate they pass.
+
 ### Continuous Integration (CI):
 
 - Ensure that all CI checks pass before requesting a review.

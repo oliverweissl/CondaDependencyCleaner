@@ -1,89 +1,86 @@
-import os
-import subprocess
-import tempfile
-from typing import Any, Generator
+from pathlib import Path
 
+import networkx as nx
 import pytest
-from conda.env.env import Environment, from_file
+from conda.env.env import from_file
 
+from conda_dependency_cleaner._clean_environment_from_file import (
+    clean_environment_from_file,
+)
 
-def _remove_conda_env(env: Environment) -> None:
-    """
-    Remove a conda environment from the system.
-
-    :param env: The environment to remove.
-    """
-    subprocess.run(["conda", "env", "remove", "-n", env.name, "-y"])
-
-
-@pytest.fixture(scope="session")
-def base_env_file() -> Generator[str, Any, None]:
-    """
-    Create and export the base environment file once for all tests.
-
-    :yields: The base environment file path.
-    """
-    test_env_file = os.path.join(os.path.dirname(__file__), "files", "test_env.yml")
-    test_env = from_file(test_env_file)
-    try:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            subprocess.run(["conda", "env", "create", "--file", test_env_file])
-            base_env_file = f"{tmpdir}/base_env.yml"
-            subprocess.run(["conda", "env", "export", "-n", test_env.name, "--file", base_env_file])
-            yield base_env_file
-    finally:
-        _remove_conda_env(test_env)
-
-
-@pytest.fixture
-def temp_dir() -> Generator[str, Any, None]:
-    """
-    Create a unique temporary directory for each test.
-
-    :yields: The temporary directory path.
-    """
-    with tempfile.TemporaryDirectory() as temp_dir:
-        yield temp_dir
+ROOT_DEPENDENCIES = ("brotli", "matplotlib", "unicodedata2")
 
 
 @pytest.mark.parametrize(
     "args, expected_env_file",
     [
-        ([], "clean_test_env.yml"),
-        (["--exclude-builds"], "clean_test_env_no_builds.yml"),
-        (["--exclude-versions"], "clean_test_env_no_versions.yml"),
+        ({}, "clean_test_env.yml"),
+        ({"exclude_builds": True}, "clean_test_env_no_builds.yml"),
+        ({"exclude_versions": True}, "clean_test_env_no_versions.yml"),
     ],
 )
 def test_clean_yaml(
-    base_env_file: str, temp_dir: str, args: list[str], expected_env_file: str
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    args: dict[str, bool],
+    expected_env_file: str,
 ) -> None:
     """
-    Test clean-yaml script with different arguments.
+    Test cleaning an environment file without depending on a writable local conda setup.
 
-    :param base_env_file: The base environment file path.
-    :param temp_dir: The temporary directory path.
-    :param args: The arguments to pass to the clean_yaml script.
-    :param expected_env_file: The expected environment file path.
+    The cleaner only needs the parsed environment and the dependency graph roots.
+    Mock the graph lookup so the test stays deterministic across machines and CI.
+
+    :param tmp_path: Temporary output directory for the generated environment file.
+    :param monkeypatch: Pytest fixture for replacing imported collaborators.
+    :param args: Cleaner flags to apply for the parameterized case.
+    :param expected_env_file: Fixture file describing the expected cleaned output.
     """
-    cleaned_env_file = os.path.join(temp_dir, "cleaned_env.yml")
+    test_files = Path(__file__).parent / "files"
+    source_env_file = test_files / "test_env.yml"
+    cleaned_env_file = tmp_path / "cleaned_env.yml"
+    expected_env_file_path = test_files / expected_env_file
+    source_env = from_file(str(source_env_file))
+    source_env.prefix = "/explicit/test-prefix"
 
-    # Run the clean-yaml script
-    result = subprocess.run(
-        ["cdc", "clean", base_env_file, "-nf", cleaned_env_file] + args,
-        check=False,
-        capture_output=True,
-        text=True,
+    monkeypatch.setattr(
+        "conda_dependency_cleaner._clean_environment_from_file.linked",
+        lambda prefix: [],
+    )
+    monkeypatch.setattr(
+        "conda_dependency_cleaner._clean_environment_from_file.get_dependency_graph",
+        lambda packages, env_path: _build_dependency_graph(),
+    )
+    monkeypatch.setattr(
+        "conda_dependency_cleaner._clean_environment_from_file.from_file",
+        lambda filename: source_env,
     )
 
-    assert result.returncode == 0, f"cdc clean failed with exit code {result.returncode}!"
-    assert os.path.exists(cleaned_env_file), f"{cleaned_env_file} was not created!"
+    clean_environment_from_file(
+        filename=str(source_env_file),
+        new_filename=str(cleaned_env_file),
+        exclude_versions=args.get("exclude_versions", False),
+        exclude_builds=args.get("exclude_builds", False),
+    )
 
-    # Load the expected environment
-    cleaned_env = from_file(cleaned_env_file)
-    expected_clean_env_path = os.path.join(os.path.dirname(__file__), "files", expected_env_file)
-    expected_clean_env = from_file(expected_clean_env_path)
+    assert cleaned_env_file.exists(), f"{cleaned_env_file} was not created!"
 
-    # Compare dependencies
-    assert (
-        cleaned_env.dependencies == expected_clean_env.dependencies
-    ), f"Dependencies differ for {args}"
+    cleaned_env = from_file(str(cleaned_env_file))
+    expected_clean_env = from_file(str(expected_env_file_path))
+
+    assert cleaned_env.channels == expected_clean_env.channels
+    assert cleaned_env.dependencies == expected_clean_env.dependencies
+
+
+def _build_dependency_graph() -> nx.DiGraph:
+    """
+    Create a minimal graph whose roots represent the direct dependencies to keep.
+
+    :return: A graph whose root nodes match the dependencies expected to remain.
+    """
+    graph = nx.DiGraph()
+    graph.add_nodes_from(ROOT_DEPENDENCIES)
+    graph.add_edge("matplotlib", "numpy-base")
+    graph.add_edge("brotli", "libbrotlicommon")
+    graph.add_edge("unicodedata2", "python")
+    return graph

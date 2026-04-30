@@ -15,9 +15,10 @@ class Dependency:
 
     def __post_init__(self) -> None:
         """After init, process the full name."""
-        components = self.full_name.split("=")
-        self.name, self.version, *other = tuple(filter(None, components))
-        self.build = other[0] if len(other) > 0 else ""
+        components = tuple(filter(None, self.full_name.split("=")))
+        self.name = components[0]
+        self.version = components[1] if len(components) > 1 else ""
+        self.build = components[2] if len(components) > 2 else ""
 
     def __repr__(self) -> str:
         """
@@ -25,6 +26,10 @@ class Dependency:
 
         :return: Return the name.
         """
-        v = "" if self.exclude_version else f"=={self.version}"
-        b = "" if (self.exclude_build or self.exclude_version) else f"={self.build}"
+        v = "" if (self.exclude_version or not self.version) else f"=={self.version}"
+        b = (
+            ""
+            if (self.exclude_build or self.exclude_version or not self.build)
+            else f"={self.build}"
+        )
         return f"{self.name}{v}{b}"
