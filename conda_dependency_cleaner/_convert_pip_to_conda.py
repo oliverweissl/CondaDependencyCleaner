@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import shlex
 import subprocess
 from subprocess import CompletedProcess
 from tempfile import TemporaryDirectory
@@ -10,14 +11,14 @@ from conda.env.env import Environment, from_file
 from tqdm import tqdm
 
 
-def _call(command: str) -> CompletedProcess:
+def _call(command: str) -> CompletedProcess[str]:
     """
     A wrapper around subprocess.run() for convenience.
 
     :param command: The command (arguments) to parse.
     :return: The completed process.
     """
-    return subprocess.run(command, shell=True, stdout=subprocess.DEVNULL)
+    return subprocess.run(command, shell=True, capture_output=True, text=True)
 
 
 def convert_pip_to_conda(
@@ -35,6 +36,8 @@ def convert_pip_to_conda(
     env: Environment = from_file(filename)
     conda_deps: list[str] = env.dependencies.get("conda", [])
     pip_deps: list[str] = env.dependencies.get("pip", [])
+    export_filename = _normalize_export_filename(new_filename or env.filename)
+    quoted_channels = " -c ".join(shlex.quote(channel) for channel in channels)
 
     with TemporaryDirectory() as tmpdir:
         file_path = os.path.join(tmpdir, "tmp_env.yml")
@@ -47,7 +50,7 @@ def convert_pip_to_conda(
         tmp_env_object.save()
 
         logging.info("Creating temporary environment.")
-        status = _call(f"conda env create -f {file_path} --quiet")
+        status = _call(f"conda env create -f {shlex.quote(file_path)} --quiet")
         if status.returncode != 0:
             raise Exception(
                 f"Returncode {status.returncode}: Failed to create conda environment, with error {status.stderr}"
@@ -57,16 +60,19 @@ def convert_pip_to_conda(
         failed_conda_installs: list[str] = []
         logging.info("Converting pip dependencies. This can take a bit.")
         for pd in tqdm(pip_deps):
-            package, _, version = re.split(r"(==|>=|<=)", pd)
+            dep_components = re.split(r"(==|>=|<=)", pd, maxsplit=1)
+            package = dep_components[0]
+            version = dep_components[2] if len(dep_components) == 3 else ""
+            conda_spec = f"{package}={version}" if version else package
             # If the package is available on the channels provided, then try to insall it.
             if (
                 _call(
-                    f"conda search -c {' -c '.join(channels)} {package} --skip-flexible-search"
+                    f"conda search -c {quoted_channels} {shlex.quote(package)} --skip-flexible-search"
                 ).returncode
                 == 0
             ):
                 install_status = _call(
-                    f"conda install -n {tmp_env_object.name} -y -c {' -c '.join(channels)} {package}={version}"
+                    f"conda install -n {shlex.quote(tmp_env_object.name)} -y -c {quoted_channels} {shlex.quote(conda_spec)}"
                 )
                 if install_status.returncode != 0:
                     failed_conda_installs.append(package)
@@ -75,13 +81,42 @@ def convert_pip_to_conda(
 
         if len(failed_conda_installs) > 0:
             logging.warning(
-                "Failed to install packages over conda: {" ".join(failed_conda_installs)}"
+                f"Failed to install packages over conda: {', '.join(failed_conda_installs)}"
             )
         logging.info("Finalizing converted environment.")
         if len(pip_fallback) > 0:
-            _call("conda init")
-            _call(f"conda activate {tmp_env_object.name}")
-            _call(f"pip install {' '.join(pip_fallback)}")
+            quoted_pip_deps = " ".join(shlex.quote(dep) for dep in pip_fallback)
+            pip_install_status = _call(
+                f"conda run -n {shlex.quote(tmp_env_object.name)} pip install {quoted_pip_deps}"
+            )
+            if pip_install_status.returncode != 0:
+                raise Exception(
+                    "Failed to install fallback pip dependencies "
+                    f"into temporary env '{tmp_env_object.name}': {pip_install_status.stderr}"
+                )
 
-        _call(f"conda export -n {tmp_env_object.name} -f {new_filename or env.filename}")
-        _call(f"conda remove -n {tmp_env_object.name} --all")
+        export_status = _call(
+            f"conda export -n {shlex.quote(tmp_env_object.name)} -f {shlex.quote(export_filename)}"
+        )
+        if export_status.returncode != 0:
+            raise Exception(
+                f"Failed to export converted environment to '{export_filename}': {export_status.stderr}"
+            )
+
+        remove_status = _call(f"conda remove -n {shlex.quote(tmp_env_object.name)} --all -y")
+        if remove_status.returncode != 0:
+            logging.warning(
+                f"Failed to remove temporary env '{tmp_env_object.name}': {remove_status.stderr}"
+            )
+
+
+def _normalize_export_filename(filename: str) -> str:
+    """
+    Ensure the output filename matches a conda-supported export pattern.
+
+    :param filename: The requested output filename.
+    :return: A supported filename, defaulting to the YAML exporter when no suffix is provided.
+    """
+    if filename.endswith((".yml", ".yaml", ".json", ".txt")):
+        return filename
+    return f"{filename}.yml"
