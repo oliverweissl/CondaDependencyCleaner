@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "conda-dependency-cleaner"
-version = "0.0.3"
+version = "0.0.4"
 description = "Clean your conda yaml file and convert pip dependencies to conda."
 readme = "README.md"
 license = "MIT"
